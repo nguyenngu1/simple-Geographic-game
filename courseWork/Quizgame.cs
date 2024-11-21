@@ -1,7 +1,14 @@
-﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System;
+
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics;
+using MySql.Data.MySqlClient;
 
 namespace GeographyQuizGame
 {
@@ -9,15 +16,43 @@ namespace GeographyQuizGame
     {
         static void Main(string[] args)
         {
-            QuizGame game = new QuizGame();
+            string connectionString = "Server=localhost;Database=comp1551_quizgame;Uid=root;Pwd=;";
+            QuizGame game = new QuizGame(connectionString);
             game.Start();
         }
     }
 
     class QuizGame
     {
-        private List<Question> questions = new List<Question>();
+        private string connectionString;
         private Random random = new Random();
+
+        public QuizGame(string connectionString)
+        {
+            this.connectionString = connectionString;
+            InitializeDatabase();
+        }
+
+        private void InitializeDatabase()
+        {
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                connection.Open();
+                string createTableQuery = @"
+                    CREATE TABLE IF NOT EXISTS Questions (
+                        Id INT AUTO_INCREMENT PRIMARY KEY,
+                        QuestionType VARCHAR(20) NOT NULL,
+                        QuestionText TEXT NOT NULL,
+                        Options TEXT,
+                        CorrectAnswer TEXT NOT NULL
+                    )";
+                using (var command = new MySqlCommand(createTableQuery, connection))
+                {
+                    command.ExecuteNonQuery();
+                }
+            }
+        }
+
 
         public void Start()
         {
@@ -37,7 +72,7 @@ namespace GeographyQuizGame
                         EditMode();
                         break;
                     case "2":
-                        if (questions.Count > 0)
+                        if (GetQuestionCount() > 0)
                             PlayMode();
                         else
                         {
@@ -117,7 +152,20 @@ namespace GeographyQuizGame
             Console.WriteLine("Enter the number of the correct option (1-4):");
             if (int.TryParse(Console.ReadLine(), out int correctOption) && correctOption >= 1 && correctOption <= 4)
             {
-                questions.Add(new MultipleChoiceQuestion(questionText, options, correctOption - 1));
+                string optionsString = string.Join("|", options);
+                using (var connection = new MySqlConnection(connectionString))
+                {
+                    connection.Open();
+                    string insertQuery = "INSERT INTO Questions (QuestionType, QuestionText, Options, CorrectAnswer) VALUES (@type, @text, @options, @answer)";
+                    using (var command = new MySqlCommand(insertQuery, connection))
+                    {
+                        command.Parameters.AddWithValue("@type", "MultipleChoice");
+                        command.Parameters.AddWithValue("@text", questionText);
+                        command.Parameters.AddWithValue("@options", optionsString);
+                        command.Parameters.AddWithValue("@answer", correctOption - 1);
+                        command.ExecuteNonQuery();
+                    }
+                }
                 Console.WriteLine("Question added successfully!");
             }
             else
@@ -137,7 +185,18 @@ namespace GeographyQuizGame
             string answersInput = Console.ReadLine();
             List<string> acceptableAnswers = answersInput.Split(',').Select(a => a.Trim().ToLower()).ToList();
 
-            questions.Add(new OpenEndedQuestion(questionText, acceptableAnswers));
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                connection.Open();
+                string insertQuery = "INSERT INTO Questions (QuestionType, QuestionText, CorrectAnswer) VALUES (@type, @text, @answer)";
+                using (var command = new MySqlCommand(insertQuery, connection))
+                {
+                    command.Parameters.AddWithValue("@type", "OpenEnded");
+                    command.Parameters.AddWithValue("@text", questionText);
+                    command.Parameters.AddWithValue("@answer", string.Join("|", acceptableAnswers));
+                    command.ExecuteNonQuery();
+                }
+            }
             Console.WriteLine("Question added successfully!");
             Console.WriteLine("Press any key to continue...");
             Console.ReadKey();
@@ -151,7 +210,18 @@ namespace GeographyQuizGame
             Console.WriteLine("Is this statement true or false? (T/F):");
             bool isTrue = Console.ReadLine().ToUpper().StartsWith("T");
 
-            questions.Add(new TrueFalseQuestion(statement, isTrue));
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                connection.Open();
+                string insertQuery = "INSERT INTO Questions (QuestionType, QuestionText, CorrectAnswer) VALUES (@type, @text, @answer)";
+                using (var command = new MySqlCommand(insertQuery, connection))
+                {
+                    command.Parameters.AddWithValue("@type", "TrueFalse");
+                    command.Parameters.AddWithValue("@text", statement);
+                    command.Parameters.AddWithValue("@answer", isTrue);
+                    command.ExecuteNonQuery();
+                }
+            }
             Console.WriteLine("Question added successfully!");
             Console.WriteLine("Press any key to continue...");
             Console.ReadKey();
@@ -159,6 +229,7 @@ namespace GeographyQuizGame
 
         private void ViewAllQuestions()
         {
+            List<Question> questions = GetAllQuestions();
             Console.Clear();
             if (questions.Count == 0)
             {
@@ -176,8 +247,10 @@ namespace GeographyQuizGame
             Console.ReadKey();
         }
 
+
         private void EditQuestion()
         {
+            List<Question> questions = GetAllQuestions();
             ViewAllQuestions();
             if (questions.Count == 0) return;
 
@@ -186,6 +259,31 @@ namespace GeographyQuizGame
             {
                 Question question = questions[index - 1];
                 question.Edit();
+
+                using (var connection = new MySqlConnection(connectionString))
+                {
+                    connection.Open();
+                    string updateQuery = "UPDATE Questions SET QuestionText = @text, Options = @options, CorrectAnswer = @answer WHERE Id = @id";
+                    using (var command = new MySqlCommand(updateQuery, connection))
+                    {
+                        command.Parameters.AddWithValue("@id", question.Id);
+                        command.Parameters.AddWithValue("@text", question.QuestionText);
+
+                        // Handle the Options parameter
+                        if (question is MultipleChoiceQuestion mcq)
+                        {
+                            command.Parameters.AddWithValue("@options", string.Join("|", mcq.Options));
+                        }
+                        else
+                        {
+                            command.Parameters.AddWithValue("@options", DBNull.Value);
+                        }
+
+                        command.Parameters.AddWithValue("@answer", question.GetCorrectAnswerString());
+                        command.ExecuteNonQuery();
+                    }
+                }
+                Console.WriteLine("Question updated successfully!");
             }
             else if (index != 0)
             {
@@ -197,13 +295,23 @@ namespace GeographyQuizGame
 
         private void DeleteQuestion()
         {
+            List<Question> questions = GetAllQuestions();
             ViewAllQuestions();
             if (questions.Count == 0) return;
 
             Console.WriteLine("Enter the number of the question to delete (or 0 to cancel):");
             if (int.TryParse(Console.ReadLine(), out int index) && index > 0 && index <= questions.Count)
             {
-                questions.RemoveAt(index - 1);
+                using (var connection = new MySqlConnection(connectionString))
+                {
+                    connection.Open();
+                    string deleteQuery = "DELETE FROM Questions WHERE Id = @id";
+                    using (var command = new MySqlCommand(deleteQuery, connection))
+                    {
+                        command.Parameters.AddWithValue("@id", questions[index - 1].Id);
+                        command.ExecuteNonQuery();
+                    }
+                }
                 Console.WriteLine("Question deleted successfully!");
             }
             else if (index != 0)
@@ -221,6 +329,7 @@ namespace GeographyQuizGame
             Console.WriteLine("Press any key to start the quiz...");
             Console.ReadKey();
 
+            List<Question> questions = GetAllQuestions();
             List<Question> shuffledQuestions = questions.OrderBy(q => random.Next()).ToList();
             int correctAnswers = 0;
             Stopwatch stopwatch = new Stopwatch();
@@ -253,6 +362,7 @@ namespace GeographyQuizGame
             Console.WriteLine("\nWould you like to see the correct answers? (Y/N)");
             if (Console.ReadLine().ToUpper().StartsWith("Y"))
             {
+                List<Question> questions = GetAllQuestions();
                 Console.Clear();
                 Console.WriteLine("=== Correct Answers ===");
                 for (int i = 0; i < questions.Count; i++)
@@ -262,20 +372,78 @@ namespace GeographyQuizGame
                 }
             }
 
-            Console.WriteLine("\nWould you like to play again? (Y/N)");
-            if (!Console.ReadLine().ToUpper().StartsWith("Y"))
+            Console.WriteLine("\nPress any key to return to the main menu...");
+            Console.ReadKey();
+        }
+
+        private List<Question> GetAllQuestions()
+        {
+            List<Question> questions = new List<Question>();
+            using (var connection = new MySqlConnection(connectionString))
             {
-                return;
+                connection.Open();
+                string selectQuery = "SELECT * FROM Questions";
+                using (var command = new MySqlCommand(selectQuery, connection))
+                {
+                    using (var reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            int id = (int)reader["Id"];
+                            string questionType = reader["QuestionType"].ToString();
+                            string questionText = reader["QuestionText"].ToString();
+                            string options = reader["Options"]?.ToString();
+                            string correctAnswer = reader["CorrectAnswer"].ToString();
+
+                            Question question = null;
+                            switch (questionType)
+                            {
+                                case "MultipleChoice":
+                                    question = new MultipleChoiceQuestion(id, questionText, options.Split('|').ToList(), int.Parse(correctAnswer));
+                                    break;
+                                case "TrueFalse":
+                                    bool isTrue = correctAnswer.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+                      correctAnswer.Equals("1");
+                                    question = new TrueFalseQuestion(id, questionText, isTrue);
+                                    break;
+                                case "OpenEnded":
+                                    question = new OpenEndedQuestion(id, questionText, correctAnswer.Split('|').ToList());
+                                    break;
+                            }
+                            if (question != null)
+                            {
+                                questions.Add(question);
+                            }
+                        }
+                    }
+                }
+            }
+            return questions;
+        }
+
+        private int GetQuestionCount()
+        {
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                connection.Open();
+                string countQuery = "SELECT COUNT(*) FROM Questions";
+                using (var command = new MySqlCommand(countQuery, connection))
+                {
+                    return Convert.ToInt32(command.ExecuteScalar());
+                }
             }
         }
+
     }
 
     abstract class Question
     {
-        protected string QuestionText;
+        public int Id { get; protected set; }
+        public string QuestionText { get; protected set; }
 
-        public Question(string questionText)
+        public Question(int id, string questionText)
         {
+            Id = id;
             QuestionText = questionText;
         }
 
@@ -283,26 +451,27 @@ namespace GeographyQuizGame
         public abstract void Display();
         public abstract void DisplayCorrectAnswer();
         public abstract void Edit();
+        public abstract string GetCorrectAnswerString();
     }
 
     class MultipleChoiceQuestion : Question
     {
-        private List<string> options;
+        public List<string> Options { get; private set; }
         private int correctOption;
 
-        public MultipleChoiceQuestion(string questionText, List<string> options, int correctOption)
-            : base(questionText)
+        public MultipleChoiceQuestion(int id, string questionText, List<string> options, int correctOption)
+            : base(id, questionText)
         {
-            this.options = options;
+            Options = options;
             this.correctOption = correctOption;
         }
 
         public override bool AskQuestion()
         {
             Console.WriteLine(QuestionText);
-            for (int i = 0; i < options.Count; i++)
+            for (int i = 0; i < Options.Count; i++)
             {
-                Console.WriteLine($"{i + 1}. {options[i]}");
+                Console.WriteLine($"{i + 1}. {Options[i]}");
             }
 
             Console.Write("Your answer (1-4): ");
@@ -317,16 +486,17 @@ namespace GeographyQuizGame
         {
             Console.WriteLine($"Type: Multiple Choice");
             Console.WriteLine($"Question: {QuestionText}");
-            for (int i = 0; i < options.Count; i++)
+            for (int i = 0; i < Options.Count; i++)
             {
-                Console.WriteLine($"Option {i + 1}: {options[i]}");
+                Console.WriteLine($"Option {i + 1}: {Options[i]}");
             }
             Console.WriteLine($"Correct Option: {correctOption + 1}");
         }
 
         public override void DisplayCorrectAnswer()
         {
-            Display();
+            Console.WriteLine($"Question: {QuestionText}");
+            Console.WriteLine($"Correct Answer: {Options[correctOption]}");
         }
 
         public override void Edit()
@@ -338,13 +508,13 @@ namespace GeographyQuizGame
                 QuestionText = newText;
             }
 
-            for (int i = 0; i < options.Count; i++)
+            for (int i = 0; i < Options.Count; i++)
             {
                 Console.WriteLine($"Enter new option {i + 1} (or press Enter to keep current):");
                 string newOption = Console.ReadLine();
                 if (!string.IsNullOrWhiteSpace(newOption))
                 {
-                    options[i] = newOption;
+                    Options[i] = newOption;
                 }
             }
 
@@ -355,36 +525,42 @@ namespace GeographyQuizGame
                 correctOption = newCorrect - 1;
             }
         }
+
+        public override string GetCorrectAnswerString()
+        {
+            return correctOption.ToString();
+        }
     }
+
 
     class OpenEndedQuestion : Question
     {
-        private List<string> acceptableAnswers;
+        private List<string> AcceptableAnswers { get; set; }
 
-        public OpenEndedQuestion(string questionText, List<string> acceptableAnswers)
-            : base(questionText)
+        public OpenEndedQuestion(int id, string questionText, List<string> acceptableAnswers)
+            : base(id, questionText)
         {
-            this.acceptableAnswers = acceptableAnswers;
+            AcceptableAnswers = acceptableAnswers;
         }
 
         public override bool AskQuestion()
         {
             Console.WriteLine(QuestionText);
-            Console.Write("Your answer: ");
-            string answer = Console.ReadLine().Trim().ToLower();
-            return acceptableAnswers.Contains(answer);
+            string answer = Console.ReadLine().ToLower();
+            return AcceptableAnswers.Any(a => a.Equals(answer));
         }
 
         public override void Display()
         {
-            Console.WriteLine($"Type: Open-Ended");
+            Console.WriteLine($"Type: Open Ended");
             Console.WriteLine($"Question: {QuestionText}");
-            Console.WriteLine($"Acceptable Answers: {string.Join(", ", acceptableAnswers)}");
+            Console.WriteLine($"Acceptable Answers: {string.Join(", ", AcceptableAnswers)}");
         }
 
         public override void DisplayCorrectAnswer()
         {
-            Display();
+            Console.WriteLine($"Question: {QuestionText}");
+            Console.WriteLine($"Acceptable Answers: {string.Join(", ", AcceptableAnswers)}");
         }
 
         public override void Edit()
@@ -400,17 +576,23 @@ namespace GeographyQuizGame
             string newAnswers = Console.ReadLine();
             if (!string.IsNullOrWhiteSpace(newAnswers))
             {
-                acceptableAnswers = newAnswers.Split(',').Select(a => a.Trim().ToLower()).ToList();
+                AcceptableAnswers = newAnswers.Split(',').Select(a => a.Trim().ToLower()).ToList();
             }
         }
+
+        public override string GetCorrectAnswerString()
+        {
+            return string.Join("|", AcceptableAnswers);
+        }
     }
+
 
     class TrueFalseQuestion : Question
     {
         private bool isTrue;
 
-        public TrueFalseQuestion(string questionText, bool isTrue)
-            : base(questionText)
+        public TrueFalseQuestion(int id, string questionText, bool isTrue)
+            : base(id, questionText)
         {
             this.isTrue = isTrue;
         }
@@ -432,7 +614,8 @@ namespace GeographyQuizGame
 
         public override void DisplayCorrectAnswer()
         {
-            Display();
+            Console.WriteLine($"Statement: {QuestionText}");
+            Console.WriteLine($"Correct Answer: {(isTrue ? "True" : "False")}");
         }
 
         public override void Edit()
@@ -450,6 +633,11 @@ namespace GeographyQuizGame
             {
                 isTrue = newAnswer.StartsWith("T");
             }
+        }
+
+        public override string GetCorrectAnswerString()
+        {
+            return isTrue.ToString();
         }
     }
 }
