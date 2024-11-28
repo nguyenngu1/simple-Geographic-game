@@ -502,7 +502,8 @@ namespace GeographyQuizGame
                 }
                 else
                 {
-                    correctAnswers--;
+                    Console.WriteLine("\nCorrect Answer:");
+                    shuffledQuestions[i].DisplayCorrectAnswer();
                 }
                 Console.WriteLine("\nPress any key for the next question...");
                 Console.ReadKey();
