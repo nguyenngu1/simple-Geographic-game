@@ -444,9 +444,39 @@ namespace GeographyQuizGame
             Console.Write("Enter your name: ");
             string playerName = Console.ReadLine();
 
-            // Fetch questions from the database and in-memory
-            List<Question> questionsFromDb = GetAllQuestions();
-            List<Question> allQuestions = questionsFromDb.Concat(inMemoryQuestions).ToList();
+            // Prompt to choose question source
+            Console.WriteLine("\nWould you like to:");
+            Console.WriteLine("1. Load questions from the database");
+            Console.WriteLine("2. Play only with questions in the console app");
+            Console.Write("Enter your choice (1 or 2): ");
+            string choice = Console.ReadLine();
+
+            List<Question> allQuestions = new List<Question>();
+
+            if (choice == "1")
+            {
+                // Load questions from both the database and in-memory
+                List<Question> questionsFromDb = GetAllQuestions();
+                allQuestions = questionsFromDb.Concat(inMemoryQuestions).ToList();
+            }
+            else if (choice == "2")
+            {
+                // Only use in-memory questions
+                if (inMemoryQuestions.Count == 0)
+                {
+                    Console.WriteLine("No in-memory questions available. Please add questions first.");
+                    Console.WriteLine("Press any key to return to the main menu...");
+                    Console.ReadKey();
+                    return;
+                }
+                allQuestions = inMemoryQuestions;
+            }
+            else
+            {
+                Console.WriteLine("Invalid choice. Press any key to return to the main menu...");
+                Console.ReadKey();
+                return;
+            }
 
             if (allQuestions.Count == 0)
             {
@@ -480,6 +510,7 @@ namespace GeographyQuizGame
             // Save the player's result to the leaderboard
             SaveToLeaderboard(playerName, correctAnswers, shuffledQuestions.Count, stopwatch.Elapsed);
         }
+
         private void SaveToLeaderboard(string playerName, int correctAnswers, int totalQuestions, TimeSpan timeSpent)
         {
             using (var connection = new MySqlConnection(connectionString))
@@ -836,3 +867,4 @@ namespace GeographyQuizGame
         }
     }
 }
+
