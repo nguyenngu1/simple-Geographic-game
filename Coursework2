@@ -105,36 +105,36 @@ namespace GeographyQuizGame
 
         private void EditMode()
         {
-           
-                const string correctPassword = "123";
-                Console.Write("Enter password to access Edit Mode: ");
-                string inputPassword = "";
-                ConsoleKeyInfo key;
 
-                do
-                {
-                    key = Console.ReadKey(intercept: true);
-                    if (key.Key != ConsoleKey.Backspace && key.Key != ConsoleKey.Enter)
-                    {
-                        inputPassword += key.KeyChar;
-                        Console.Write("*"); // Display asterisk instead of the actual character
-                    }
-                    else if (key.Key == ConsoleKey.Backspace && inputPassword.Length > 0)
-                    {
-                        inputPassword = inputPassword.Substring(0, (inputPassword.Length - 1));
-                        Console.Write("\b \b"); // Erase the last asterisk
-                    }
-                } while (key.Key != ConsoleKey.Enter);
-                Console.WriteLine();
+            const string correctPassword = "123";
+            Console.Write("Enter password to access Edit Mode: ");
+            string inputPassword = "";
+            ConsoleKeyInfo key;
 
-                if (inputPassword != correctPassword)
+            do
+            {
+                key = Console.ReadKey(intercept: true);
+                if (key.Key != ConsoleKey.Backspace && key.Key != ConsoleKey.Enter)
                 {
-                    Console.WriteLine("Incorrect password. Access denied.");
-                    Console.WriteLine("Press any key to return to the main menu...");
-                    Console.ReadKey();
-                    return;
-                } 
-                while (true)
+                    inputPassword += key.KeyChar;
+                    Console.Write("*"); // Display asterisk instead of the actual character
+                }
+                else if (key.Key == ConsoleKey.Backspace && inputPassword.Length > 0)
+                {
+                    inputPassword = inputPassword.Substring(0, (inputPassword.Length - 1));
+                    Console.Write("\b \b"); // Erase the last asterisk
+                }
+            } while (key.Key != ConsoleKey.Enter);
+            Console.WriteLine();
+
+            if (inputPassword != correctPassword)
+            {
+                Console.WriteLine("Incorrect password. Access denied.");
+                Console.WriteLine("Press any key to return to the main menu...");
+                Console.ReadKey();
+                return;
+            }
+            while (true)
             {
                 Console.Clear();
                 Console.WriteLine("=== Edit Mode ===");
@@ -500,6 +500,10 @@ namespace GeographyQuizGame
                 {
                     correctAnswers++;
                 }
+                else
+                {
+                    correctAnswers--;
+                }
                 Console.WriteLine("\nPress any key for the next question...");
                 Console.ReadKey();
             }
@@ -705,10 +709,27 @@ namespace GeographyQuizGame
             Console.Write("Your answer (1-4): ");
             if (int.TryParse(Console.ReadLine(), out int answer) && answer >= 1 && answer <= 4)
             {
-                return answer - 1 == correctOption;
+                bool isCorrect = (answer - 1) == correctOption;
+                if (isCorrect)
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("Correct!");
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Incorrect!");
+                }
+                Console.ResetColor();
+                return isCorrect;
             }
+
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("Invalid answer. Incorrect!");
+            Console.ResetColor();
             return false;
         }
+
 
         public override void Display()
         {
@@ -774,8 +795,22 @@ namespace GeographyQuizGame
         {
             Console.WriteLine(QuestionText);
             string answer = Console.ReadLine().ToLower();
-            return AcceptableAnswers.Any(a => a.Equals(answer));
+            bool isCorrect = AcceptableAnswers.Any(a => a.Equals(answer));
+
+            if (isCorrect)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Correct!");
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Incorrect!");
+            }
+            Console.ResetColor();
+            return isCorrect;
         }
+
 
         public override void Display()
         {
@@ -828,8 +863,22 @@ namespace GeographyQuizGame
             Console.WriteLine(QuestionText);
             Console.Write("True or False? (T/F): ");
             string answer = Console.ReadLine().ToUpper();
-            return (answer.StartsWith("T") == isTrue);
+            bool isCorrect = (answer.StartsWith("T") == isTrue);
+
+            if (isCorrect)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Correct!");
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Incorrect!");
+            }
+            Console.ResetColor();
+            return isCorrect;
         }
+
 
         public override void Display()
         {
@@ -867,4 +916,3 @@ namespace GeographyQuizGame
         }
     }
 }
-
