@@ -105,41 +105,12 @@ namespace GeographyQuizGame
 
         private void EditMode()
         {
-
-            const string correctPassword = "123";
-            Console.Write("Enter password to access Edit Mode: ");
-            string inputPassword = "";
-            ConsoleKeyInfo key;
-
-            do
-            {
-                key = Console.ReadKey(intercept: true);
-                if (key.Key != ConsoleKey.Backspace && key.Key != ConsoleKey.Enter)
-                {
-                    inputPassword += key.KeyChar;
-                    Console.Write("*"); // Display asterisk instead of the actual character
-                }
-                else if (key.Key == ConsoleKey.Backspace && inputPassword.Length > 0)
-                {
-                    inputPassword = inputPassword.Substring(0, (inputPassword.Length - 1));
-                    Console.Write("\b \b"); // Erase the last asterisk
-                }
-            } while (key.Key != ConsoleKey.Enter);
-            Console.WriteLine();
-
-            if (inputPassword != correctPassword)
-            {
-                Console.WriteLine("Incorrect password. Access denied.");
-                Console.WriteLine("Press any key to return to the main menu...");
-                Console.ReadKey();
-                return;
-            }
             while (true)
             {
                 Console.Clear();
                 Console.WriteLine("=== Edit Mode ===");
                 Console.WriteLine("1. Add Question in Database");
-                Console.WriteLine("2. Add question in Console app");
+                Console.WriteLine("2. Add Question in Console App");
                 Console.WriteLine("3. View All Questions");
                 Console.WriteLine("4. Edit Question");
                 Console.WriteLine("5. Delete Question");
@@ -150,7 +121,10 @@ namespace GeographyQuizGame
                 switch (choice)
                 {
                     case "1":
-                        AddQuestion(saveToDatabase: true);
+                        if (ValidatePassword("123")) // Prompt for password before adding to the database
+                        {
+                            AddQuestion(saveToDatabase: true);
+                        }
                         break;
                     case "2":
                         AddQuestion(saveToDatabase: false);
@@ -173,6 +147,39 @@ namespace GeographyQuizGame
                 }
             }
         }
+
+        private bool ValidatePassword(string correctPassword)
+        {
+            Console.Write("Enter password to add question to database: ");
+            string inputPassword = "";
+            ConsoleKeyInfo key;
+
+            do
+            {
+                key = Console.ReadKey(intercept: true);
+                if (key.Key != ConsoleKey.Backspace && key.Key != ConsoleKey.Enter)
+                {
+                    inputPassword += key.KeyChar;
+                    Console.Write("*"); // Display asterisk instead of the actual character
+                }
+                else if (key.Key == ConsoleKey.Backspace && inputPassword.Length > 0)
+                {
+                    inputPassword = inputPassword.Substring(0, (inputPassword.Length - 1));
+                    Console.Write("\b \b"); // Erase the last asterisk
+                }
+            } while (key.Key != ConsoleKey.Enter);
+            Console.WriteLine();
+
+            if (inputPassword != correctPassword)
+            {
+                Console.WriteLine("Incorrect password. Access denied.");
+                Console.WriteLine("Press any key to return to the Edit Mode menu...");
+                Console.ReadKey();
+                return false;
+            }
+            return true;
+        }
+
 
         private void AddQuestion(bool saveToDatabase)
         {
@@ -446,22 +453,31 @@ namespace GeographyQuizGame
 
             // Prompt to choose question source
             Console.WriteLine("\nWould you like to:");
-            Console.WriteLine("1. Load questions from the database");
-            Console.WriteLine("2. Play only with questions in the console app");
-            Console.Write("Enter your choice (1 or 2): ");
+            Console.WriteLine("1. Play questions from the database");
+            Console.WriteLine("2. Play in-memory questions");
+            Console.WriteLine("3. Play all questions");
+
+            Console.Write("Enter your choice (1, 2, or 3): ");
             string choice = Console.ReadLine();
 
             List<Question> allQuestions = new List<Question>();
 
             if (choice == "1")
             {
-                // Load questions from both the database and in-memory
+                // Load only database questions
                 List<Question> questionsFromDb = GetAllQuestions();
-                allQuestions = questionsFromDb.Concat(inMemoryQuestions).ToList();
+                if (questionsFromDb.Count == 0)
+                {
+                    Console.WriteLine("No questions available in the database. Please add questions first.");
+                    Console.WriteLine("Press any key to return to the main menu...");
+                    Console.ReadKey();
+                    return;
+                }
+                allQuestions = questionsFromDb;
             }
             else if (choice == "2")
             {
-                // Only use in-memory questions
+                // Load only in-memory questions
                 if (inMemoryQuestions.Count == 0)
                 {
                     Console.WriteLine("No in-memory questions available. Please add questions first.");
@@ -471,17 +487,23 @@ namespace GeographyQuizGame
                 }
                 allQuestions = inMemoryQuestions;
             }
+            else if (choice == "3")
+            {
+                // Load all questions (database + in-memory)
+                List<Question> questionsFromDb = GetAllQuestions();
+                allQuestions = questionsFromDb.Concat(inMemoryQuestions).ToList();
+
+                if (allQuestions.Count == 0)
+                {
+                    Console.WriteLine("No questions available. Please add questions first.");
+                    Console.WriteLine("Press any key to return to the main menu...");
+                    Console.ReadKey();
+                    return;
+                }
+            }
             else
             {
                 Console.WriteLine("Invalid choice. Press any key to return to the main menu...");
-                Console.ReadKey();
-                return;
-            }
-
-            if (allQuestions.Count == 0)
-            {
-                Console.WriteLine("No questions available. Please add questions first.");
-                Console.WriteLine("Press any key to return to the main menu...");
                 Console.ReadKey();
                 return;
             }
@@ -515,6 +537,7 @@ namespace GeographyQuizGame
             // Save the player's result to the leaderboard
             SaveToLeaderboard(playerName, correctAnswers, shuffledQuestions.Count, stopwatch.Elapsed);
         }
+
 
         private void SaveToLeaderboard(string playerName, int correctAnswers, int totalQuestions, TimeSpan timeSpent)
         {
