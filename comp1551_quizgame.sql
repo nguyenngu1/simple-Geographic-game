@@ -64,21 +64,21 @@ CREATE TABLE `questions` (
 --
 
 INSERT INTO `questions` (`Id`, `QuestionType`, `QuestionText`, `Options`, `CorrectAnswer`) VALUES
-(14, 'OpenEnded', 'What is the capital of France?', NULL, 'paris'),
-(17, 'OpenEnded', 'Which continent is the Sahara Desert located in?', NULL, 'africa'),
-(18, 'OpenEnded', 'What is the longest river in the world?', NULL, 'nile'),
+(14, 'OpenEnded', 'What is the capital of France?', NULL, 'Paris'),
+(17, 'OpenEnded', 'Which continent is the Sahara Desert located in?', NULL, 'Africa'),
+(18, 'OpenEnded', 'What is the longest river in the world?', NULL, 'Nile'),
 (19, 'OpenEnded', 'Which ocean is the largest?', NULL, 'pacific ocean'),
-(20, 'OpenEnded', 'What country has the most islands?', NULL, 'sweden'),
+(20, 'OpenEnded', 'What country has the most islands?', NULL, 'Sweden'),
 (21, 'MultipleChoice', 'Which is the smallest country in the world by land area?', 'Monaco|Vatican City|San Marino|Liechtenstein', '1'),
 (22, 'MultipleChoice', 'Which continent has the most countries?', 'Asia|Africa|Europe|South America', '1'),
 (23, 'MultipleChoice', 'What is the largest desert in the world?', 'Gobi Desert|Arabian Desert|Sahara Desert|Antarctic Desert', '3'),
 (24, 'MultipleChoice', 'Which city is known as the \'City of Eternal Spring\'?', 'Hanoi|Da Nang|Da Lat|Hue', '2'),
 (25, 'MultipleChoice', 'What is the most famous tunnel system used during the Vietnam War?', 'Cu Chi Tunnels|Vinh Moc Tunnels|Ho Chi Minh Tunnels|Phong Nha Tunnels', '0'),
-(26, 'TrueFalse', 'Hoang Sa, Truong Sa is of Viet Nam', NULL, '1'),
-(27, 'TrueFalse', 'Vietnam has a tropical monsoon climate?', NULL, '1'),
-(28, 'TrueFalse', 'Ha Long Bay is located in southern Vietnam?', NULL, '0'),
-(29, 'TrueFalse', 'The Mekong River flows through the capital of Vietnam?', NULL, '0'),
-(30, 'TrueFalse', 'Vietnam is known for its coffee production?', NULL, '1');
+(26, 'TrueFalse', 'Are Hoang Sa and Truong Sa of Viet Nam?', NULL, '1'),
+(27, 'TrueFalse', 'Does Vietnam have a tropical monsoon climate?', NULL, '1'),
+(28, 'TrueFalse', 'Is Ha Long Bay located in southern Vietnam?', NULL, '0'),
+(29, 'TrueFalse', 'Does the Mekong River flow through the capital of Vietnam?', NULL, '0'),
+(30, 'TrueFalse', 'Is Vietnam known for its coffee production?', NULL, '1');
 
 --
 -- Chỉ mục cho các bảng đã đổ
