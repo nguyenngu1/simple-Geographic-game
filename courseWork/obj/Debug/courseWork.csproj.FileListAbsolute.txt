@@ -1,7 +1,0 @@
-C:\Users\Thành Nguyên\Desktop\C#\courseWork\bin\Debug\courseWork.exe.config
-C:\Users\Thành Nguyên\Desktop\C#\courseWork\bin\Debug\courseWork.exe
-C:\Users\Thành Nguyên\Desktop\C#\courseWork\bin\Debug\courseWork.pdb
-C:\Users\Thành Nguyên\Desktop\C#\courseWork\obj\Debug\courseWork.csproj.AssemblyReference.cache
-C:\Users\Thành Nguyên\Desktop\C#\courseWork\obj\Debug\courseWork.csproj.CoreCompileInputs.cache
-C:\Users\Thành Nguyên\Desktop\C#\courseWork\obj\Debug\courseWork.exe
-C:\Users\Thành Nguyên\Desktop\C#\courseWork\obj\Debug\courseWork.pdb
